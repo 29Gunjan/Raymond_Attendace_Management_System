@@ -17,7 +17,7 @@ FROM node:18-alpine AS production
 WORKDIR /app
 
 # Install serve to host static files
-RUN npm install -g serve
+RUN npm install -g serve@14.2.0
 
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
@@ -25,5 +25,5 @@ COPY --from=builder /app/dist ./dist
 # Railway uses dynamic PORT
 EXPOSE 3000
 
-# Serve the static files
-CMD ["sh", "-c", "serve -s dist -l ${PORT:-3000}"]
+# Serve the static files - use port flag correctly
+CMD ["sh", "-c", "serve -s dist -p ${PORT:-3000}"]

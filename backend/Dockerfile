@@ -2,7 +2,7 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install dependencies for canvas and face-api.js
+# Install system dependencies for canvas / face-api
 RUN apk add --no-cache \
     build-base \
     g++ \
@@ -15,24 +15,20 @@ RUN apk add --no-cache \
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies (SAFE for Railway)
+RUN npm install
 
 # Copy source code
 COPY . .
 
-# Create directories
+# Create required directories
 RUN mkdir -p face_data uploads logs
 
 # Set environment variables
 ENV NODE_ENV=production
 
-# Expose port
+# Railway uses dynamic PORT
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
-
-# Start the application
+# Start app
 CMD ["node", "src/server.js"]

@@ -77,6 +77,29 @@ app.use(requestLogger);
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+// Root endpoint - API info
+app.get('/', (req, res) => {
+    res.status(200).json({
+        name: 'Raymond Attendance Management API',
+        version: '1.0.0',
+        status: 'running',
+        endpoints: {
+            health: '/api/health',
+            auth: '/api/auth',
+            users: '/api/users',
+            attendance: '/api/attendance',
+            leaves: '/api/leaves',
+            departments: '/api/departments',
+            shifts: '/api/shifts',
+            holidays: '/api/holidays',
+            reports: '/api/reports',
+            face: '/api/face',
+            config: '/api/config'
+        },
+        documentation: 'Use /api/* endpoints to access the API'
+    });
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.status(200).json({

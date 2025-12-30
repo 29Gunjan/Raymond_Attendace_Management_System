@@ -31,9 +31,23 @@ app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-// CORS configuration
+// CORS configuration - support multiple origins for Railway deployment
+const allowedOrigins = process.env.CORS_ORIGIN 
+    ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+    : ['http://localhost:5173'];
+
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: function(origin, callback) {
+        // Allow requests with no origin (mobile apps, curl, etc.)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.includes(origin) || 
+            origin.endsWith('.railway.app') || 
+            origin.endsWith('.up.railway.app')) {
+            return callback(null, true);
+        }
+        return callback(new Error('Not allowed by CORS'), false);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']

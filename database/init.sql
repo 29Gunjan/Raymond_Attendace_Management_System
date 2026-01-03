@@ -2,9 +2,6 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- =====================================================
--- ENUM TYPES
--- =====================================================
 
 CREATE TYPE user_role AS ENUM ('ADMIN', 'GM', 'HR', 'MANAGER', 'EMPLOYEE');
 CREATE TYPE user_status AS ENUM ('ACTIVE', 'INACTIVE', 'SUSPENDED');
@@ -14,9 +11,6 @@ CREATE TYPE leave_status AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'
 CREATE TYPE shift_type AS ENUM ('DAY', 'NIGHT', 'ROTATIONAL', 'FLEXIBLE');
 CREATE TYPE audit_action AS ENUM ('CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'ATTENDANCE_EDIT');
 
--- =====================================================
--- TABLES
--- =====================================================
 
 -- Departments Table
 CREATE TABLE departments (
@@ -236,10 +230,6 @@ CREATE INDEX idx_holidays_year ON holidays(year);
 CREATE INDEX idx_sessions_user ON user_sessions(user_id);
 CREATE INDEX idx_sessions_token ON user_sessions(token_hash);
 
--- =====================================================
--- FUNCTIONS & TRIGGERS
--- =====================================================
-
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -345,8 +335,8 @@ INSERT INTO departments (name, code, description) VALUES
 ('Quality Assurance', 'QA', 'Quality Control Department'),
 ('Administration', 'ADMIN', 'Administrative Department');
 
--- Default Admin User (password: Admin@123)
--- Note: Employee IDs are auto-generated based on department code (e.g., IT001, HR002)
+
+--  Employee IDs are auto-generated based on department code (e.g., IT001, HR002)
 INSERT INTO users (
     employee_id, email, password_hash, first_name, last_name, phone, role, status, date_of_joining
 ) VALUES (
@@ -367,7 +357,7 @@ SELECT id, EXTRACT(YEAR FROM CURRENT_DATE)::INTEGER
 FROM users WHERE employee_id = 'IT001';
 
 -- Sample HR User (password: Hr@12345)
--- Note: HR cannot approve any leave requests, only managers can approve for their department
+--  HR cannot approve any leave requests, only managers can approve for their department
 INSERT INTO users (
     employee_id, email, password_hash, first_name, last_name, phone, role, status, date_of_joining,
     department_id
@@ -484,9 +474,6 @@ INSERT INTO holidays (name, date, year, is_optional) VALUES
 ('Guru Nanak Jayanti', '2026-11-16', 2026, TRUE),
 ('Christmas', '2026-12-25', 2026, FALSE);
 
--- =====================================================
--- VIEWS
--- =====================================================
 
 -- Employee Attendance Summary View
 CREATE OR REPLACE VIEW vw_employee_attendance_summary AS

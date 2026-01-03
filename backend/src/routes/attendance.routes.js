@@ -9,8 +9,8 @@ const { createAuditLog } = require('../middleware/logger');
 // Raymond office location configuration
 // Raymond Borgaon Factory - Chhindwara, Madhya Pradesh (100 acres)
 const RAYMOND_OFFICE_LOCATION = {
-    latitude: 22.14,    // Raymond Borgaon coordinates
-    longitude: 78.77,
+    latitude: 21.55,    // Raymond Borgaon coordinates
+    longitude: 78.81,
     radius: 800 // meters - covers 100 acre campus
 };
 

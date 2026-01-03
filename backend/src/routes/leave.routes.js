@@ -118,7 +118,8 @@ router.post('/apply', authenticate, leaveValidation.apply, async (req, res, next
 router.get('/my-leaves', authenticate, async (req, res, next) => {
     try {
         const { status, year } = req.query;
-        const currentYear = year || new Date().getFullYear();
+        const currentYear = new Date().getFullYear();
+        const nextYear = currentYear + 1;
 
         let queryText = `
             SELECT lr.*, 
@@ -126,12 +127,21 @@ router.get('/my-leaves', authenticate, async (req, res, next) => {
             FROM leave_requests lr
             LEFT JOIN users approver ON lr.approved_by = approver.id
             WHERE lr.user_id = $1
-            AND EXTRACT(YEAR FROM lr.start_date) = $2
         `;
-        const params = [req.user.id, currentYear];
+        const params = [req.user.id];
+
+        // If specific year is provided, filter by that year
+        // Otherwise show current year and next year leaves
+        if (year) {
+            queryText += ` AND EXTRACT(YEAR FROM lr.start_date) = $${params.length + 1}`;
+            params.push(year);
+        } else {
+            queryText += ` AND EXTRACT(YEAR FROM lr.start_date) IN ($${params.length + 1}, $${params.length + 2})`;
+            params.push(currentYear, nextYear);
+        }
 
         if (status) {
-            queryText += ` AND lr.status = $3`;
+            queryText += ` AND lr.status = $${params.length + 1}`;
             params.push(status);
         }
 
@@ -139,10 +149,11 @@ router.get('/my-leaves', authenticate, async (req, res, next) => {
 
         const result = await query(queryText, params);
 
-        // Get leave balance
+        // Get leave balance for the specified year or current year
+        const balanceYear = year || currentYear;
         const balanceResult = await query(
             `SELECT * FROM leave_balances WHERE user_id = $1 AND year = $2`,
-            [req.user.id, currentYear]
+            [req.user.id, balanceYear]
         );
 
         res.json({
@@ -173,16 +184,16 @@ router.get('/pending', authenticate, authorize('MANAGER', 'ADMIN', 'GM'), async 
         `;
         const params = [req.user.id]; // Exclude own leave requests (prevent self-approval)
 
-        // Manager can only see pending requests from their department (excluding admin leaves)
+        // Manager can only see pending requests from their department EMPLOYEES only (not other Managers, Admin, GM)
         if (req.user.role === 'MANAGER') {
-            queryText += ` AND u.department_id = $2 AND u.role NOT IN ('ADMIN', 'GM')`;
+            queryText += ` AND u.department_id = $2 AND u.role = 'EMPLOYEE'`;
             params.push(req.user.department_id);
         }
-        // Admin can see all leaves EXCEPT other admin leaves (admin leaves go to GM only)
+        // Admin can see all leaves EXCEPT Admin and Manager leaves (those go to GM only)
         else if (req.user.role === 'ADMIN') {
-            queryText += ` AND u.role != 'ADMIN'`;
+            queryText += ` AND u.role NOT IN ('ADMIN', 'MANAGER', 'GM')`;
         }
-        // GM can see all pending leaves (including admin leaves)
+        // GM can see all pending leaves (including Manager and Admin leaves)
 
         queryText += ` ORDER BY lr.created_at ASC`;
 
@@ -248,7 +259,15 @@ router.patch('/:id/approve', authenticate, authorize('MANAGER', 'GM', 'ADMIN'), 
             });
         }
 
-        // RULE 3: Manager can only approve their department's employees (not admin/GM)
+        // RULE 2.5: Manager leaves can ONLY be approved by GM
+        if (leaveRequest.applicant_role === 'MANAGER' && req.user.role !== 'GM') {
+            return res.status(403).json({
+                success: false,
+                error: 'Manager leave requests can only be approved by GM'
+            });
+        }
+
+        // RULE 3: Manager can only approve their department's EMPLOYEES (not admin/GM/Manager)
         if (req.user.role === 'MANAGER') {
             if (leaveRequest.department_id !== req.user.department_id) {
                 return res.status(403).json({
@@ -256,19 +275,19 @@ router.patch('/:id/approve', authenticate, authorize('MANAGER', 'GM', 'ADMIN'), 
                     error: 'You can only approve/reject leave requests of your department members'
                 });
             }
-            if (['ADMIN', 'GM'].includes(leaveRequest.applicant_role)) {
+            if (['ADMIN', 'GM', 'MANAGER'].includes(leaveRequest.applicant_role)) {
                 return res.status(403).json({
                     success: false,
-                    error: 'Managers cannot approve Admin or GM leave requests'
+                    error: 'Managers can only approve Employee leave requests'
                 });
             }
         }
 
-        // RULE 4: Admin can approve any leave EXCEPT other admin leaves
-        if (req.user.role === 'ADMIN' && leaveRequest.applicant_role === 'ADMIN') {
+        // RULE 4: Admin can approve any leave EXCEPT Admin and Manager leaves
+        if (req.user.role === 'ADMIN' && ['ADMIN', 'MANAGER'].includes(leaveRequest.applicant_role)) {
             return res.status(403).json({
                 success: false,
-                error: 'Admin leave requests can only be approved by GM'
+                error: 'Admin and Manager leave requests can only be approved by GM'
             });
         }
 

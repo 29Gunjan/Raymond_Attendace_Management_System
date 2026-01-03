@@ -14,9 +14,9 @@ import * as faceapi from 'face-api.js'
 // Default Raymond office location (fallback if API fails)
 // Raymond Borgaon Factory - Chhindwara, Madhya Pradesh (100 acres)
 const DEFAULT_OFFICE_LOCATION = {
-  latitude: 22.14,    // Raymond Borgaon coordinates
-  longitude: 78.77,
-  radius: 800 // meters - covers 100 acre campus
+  latitude: 21.5469,   // Raymond Borgaon plant coordinates
+  longitude: 78.8192,
+  radius: 800 // meters - covers ~100 acre campus
 }
 
 const FaceAttendance = ({ mode = 'check-in', onClose, onSuccess }) => {
